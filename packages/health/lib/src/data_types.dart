@@ -41,6 +41,7 @@ enum HealthDataType {
   HEADACHE_MODERATE,
   HEADACHE_SEVERE,
   HEADACHE_UNSPECIFIED,
+  HEART_POINT,
 
   // Heart Rate events (specific to Apple Watch)
   HIGH_HEART_RATE_EVENT,
@@ -121,6 +122,7 @@ const List<HealthDataType> _dataTypeKeysAndroid = [
   HealthDataType.SLEEP_IN_BED,
   HealthDataType.WATER,
   HealthDataType.WORKOUT,
+  HealthDataType.HEART_POINT,
 ];
 
 /// Maps a [HealthDataType] to a [HealthDataUnit].
@@ -166,6 +168,8 @@ const Map<HealthDataType, HealthDataUnit> _dataTypeToUnit = {
   HealthDataType.HEADACHE_MODERATE: HealthDataUnit.MINUTE,
   HealthDataType.HEADACHE_SEVERE: HealthDataUnit.MINUTE,
   HealthDataType.HEADACHE_UNSPECIFIED: HealthDataUnit.MINUTE,
+
+  HealthDataType.HEART_POINT: HealthDataUnit.COUNT,
 
   // Heart Rate events (specific to Apple Watch)
   HealthDataType.HIGH_HEART_RATE_EVENT: HealthDataUnit.NO_UNIT,

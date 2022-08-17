@@ -51,6 +51,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) : MethodCallHandl
   private var AGGREGATE_STEP_COUNT = "AGGREGATE_STEP_COUNT"
   private var ACTIVE_ENERGY_BURNED = "ACTIVE_ENERGY_BURNED"
   private var HEART_RATE = "HEART_RATE"
+  private var HEART_POINT = "HEART_POINT"
   private var BODY_TEMPERATURE = "BODY_TEMPERATURE"
   private var BLOOD_PRESSURE_SYSTOLIC = "BLOOD_PRESSURE_SYSTOLIC"
   private var BLOOD_PRESSURE_DIASTOLIC = "BLOOD_PRESSURE_DIASTOLIC"
@@ -261,6 +262,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) : MethodCallHandl
       AGGREGATE_STEP_COUNT -> DataType.AGGREGATE_STEP_COUNT_DELTA
       ACTIVE_ENERGY_BURNED -> DataType.TYPE_CALORIES_EXPENDED
       HEART_RATE -> DataType.TYPE_HEART_RATE_BPM
+      HEART_POINT -> DataType.TYPE_HEART_POINTS
       BODY_TEMPERATURE -> HealthDataTypes.TYPE_BODY_TEMPERATURE
       BLOOD_PRESSURE_SYSTOLIC -> HealthDataTypes.TYPE_BLOOD_PRESSURE
       BLOOD_PRESSURE_DIASTOLIC -> HealthDataTypes.TYPE_BLOOD_PRESSURE
@@ -285,6 +287,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) : MethodCallHandl
       STEPS -> Field.FIELD_STEPS
       ACTIVE_ENERGY_BURNED -> Field.FIELD_CALORIES
       HEART_RATE -> Field.FIELD_BPM
+      HEART_POINT -> Field.FIELD_INTENSITY
       BODY_TEMPERATURE -> HealthFields.FIELD_BODY_TEMPERATURE
       BLOOD_PRESSURE_SYSTOLIC -> HealthFields.FIELD_BLOOD_PRESSURE_SYSTOLIC
       BLOOD_PRESSURE_DIASTOLIC -> HealthFields.FIELD_BLOOD_PRESSURE_DIASTOLIC
