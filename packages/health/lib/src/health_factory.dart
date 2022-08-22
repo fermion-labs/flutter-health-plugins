@@ -412,6 +412,26 @@ class HealthFactory {
     return stepsCount;
   }
 
+  /// Get the calculated Heart Points within a specific time period.
+  /// Returns null if not successful.
+  ///
+  /// iOS Only
+  /// Calculation according to https://developers.google.com/fit/datatypes/activity#heart_points
+  Future<int?> getHeartPoints(
+    DateTime startTime,
+    DateTime endTime,
+  ) async {
+    final args = <String, dynamic>{
+      'startTime': startTime.millisecondsSinceEpoch,
+      'endTime': endTime.millisecondsSinceEpoch
+    };
+    final heartPoints = await _channel.invokeMethod<int?>(
+      'getHeartPoints',
+      args,
+    );
+    return heartPoints;
+  }
+
   int _alignValue(HealthDataType type) {
     switch (type) {
       case HealthDataType.SLEEP_IN_BED:

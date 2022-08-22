@@ -159,6 +159,11 @@ public class SwiftHealthPlugin: NSObject, FlutterPlugin {
         else if (call.method.elementsEqual("hasPermissions")){
             try! hasPermissions(call: call, result: result)
         }
+
+        /// Handle getHeartPoints
+        else if (call.method.elementsEqual("getHeartPoints")){
+            getHeartPoints(call: call, result: result)
+        }
     }
     
     func checkIfHealthDataAvailable(call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -538,6 +543,135 @@ public class SwiftHealthPlugin: NSObject, FlutterPlugin {
         
         HKHealthStore().execute(query)
     }
+
+    func getHeartPoints(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        let arguments = call.arguments as? NSDictionary
+        let startTime = (arguments?["startTime"] as? NSNumber) ?? 0
+        let endTime = (arguments?["endTime"] as? NSNumber) ?? 0
+
+        // Convert dates from milliseconds to Date()
+        let dateFrom = Date(timeIntervalSince1970: startTime.doubleValue / 1000)
+        let dateTo = Date(timeIntervalSince1970: endTime.doubleValue / 1000)
+
+        let stepCountType = HKSampleType.quantityType(forIdentifier: .stepCount)!
+        let heartRateType = HKSampleType.quantityType(forIdentifier: .heartRate)!
+        let predicate = HKQuery.predicateForSamples(withStart: dateFrom, end: dateTo, options: .strictStartDate)
+        let interval = DateComponents(minute: 1)
+
+        let stepsQuery = HKStatisticsCollectionQuery(quantityType: stepCountType,
+                                                     quantitySamplePredicate: predicate,
+                                                     options: .cumulativeSum,
+                                                     anchorDate: dateFrom,
+                                                     intervalComponents: interval)
+        let heartRateQuery = HKStatisticsCollectionQuery(quantityType: heartRateType,
+                                                         quantitySamplePredicate: predicate,
+                                                         options: .discreteMin,
+                                                         anchorDate: dateFrom,
+                                                         intervalComponents: interval)
+
+        Task {
+            var age = 0
+
+            if let dob = try? HKHealthStore().dateOfBirthComponents() {
+                age = abs(Int(dob.date!.timeIntervalSinceNow / 31556926.0))
+            }
+
+            var dict: Dictionary<Date, Int> = [:]
+
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) -> Void in
+                heartRateQuery.initialResultsHandler = {
+                    query, results, error in
+
+                    guard let queryResult = results else {
+                        let error = error! as NSError
+                        print("Error getting heart rate in interval \(error.localizedDescription)")
+
+                        continuation.resume()
+                        return
+                    }
+
+                    queryResult.enumerateStatistics(from: dateFrom, to: dateTo)
+                    { (statistics, stop) in
+                        if let quantity = statistics.minimumQuantity() {
+                            let date = statistics.startDate.strippedSeconds!
+                            if let sources = statistics.sources {
+                                debugPrint("Sources: \(sources)")
+                            }
+                            let heartRate = quantity.doubleValue(for: HKUnit(from: "count/min"))
+                            var heartPoint: Int = 0
+
+                            let maxHeartRate = 205.8 - (0.685 * Double(age))
+
+                            if heartRate / maxHeartRate > 0.5 {
+                                heartPoint += 1
+                            }
+
+                            if heartRate / maxHeartRate > 0.7 {
+                                heartPoint += 1
+                            }
+
+                            if heartPoint > 0 {
+                                dict[date] = heartPoint
+                            }
+                        }
+                    }
+
+                    continuation.resume()
+                }
+
+                HKHealthStore().execute(heartRateQuery)
+            }
+
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) -> Void in
+                stepsQuery.initialResultsHandler = {
+                    query, results, error in
+
+                    guard let queryResult = results else {
+                        let error = error! as NSError
+                        print("Error getting steps count in interval \(error.localizedDescription)")
+
+                        continuation.resume()
+                        return
+                    }
+
+                    queryResult.enumerateStatistics(from: dateFrom, to: dateTo)
+                    { (statistics, stop) in
+                        if let quantity = statistics.sumQuantity() {
+                            let date = statistics.startDate.strippedSeconds!
+                            let value = quantity.doubleValue(for: .count())
+                            let steps = Int(value)
+                            var heartPoint = 0
+
+                            if let existingData = dict[date], existingData > 0 {
+                                return
+                            }
+
+                            if steps >= 100 {
+                                heartPoint += 1
+                            }
+
+                            if steps > 130 {
+                                heartPoint += 1
+                            }
+
+                            if heartPoint > 0 {
+                                dict[date] = heartPoint
+                            }
+                        }
+                    }
+
+                    continuation.resume()
+                }
+
+                HKHealthStore().execute(stepsQuery)
+            }
+
+            let heartPoints = dict.values.reduce(0, +)
+            DispatchQueue.main.async {
+                result(heartPoints)
+            }
+        }
+    }
     
     func unitLookUp(key: String) -> HKUnit {
         guard let unit = unitDict[key] else {
@@ -765,6 +899,15 @@ public class SwiftHealthPlugin: NSObject, FlutterPlugin {
     }
 }
 
+extension Date {
 
+    var strippedSeconds: Date? {
+        get {
+            let calender = Calendar.current
+            var dateComponents = calender.dateComponents([.year, .month, .day, .hour, .minute], from: self)
+            dateComponents.timeZone = NSTimeZone.system
+            return calender.date(from: dateComponents)
+        }
+    }
 
-
+}
